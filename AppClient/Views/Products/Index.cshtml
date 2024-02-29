@@ -1,0 +1,238 @@
+﻿@model IEnumerable<AppServer.Models.Product>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Product List</h1>
+
+<table class="table" id="productTable">
+    <thead>
+        <tr>
+            <th>
+                No
+            </th>
+            <th>
+                Product Name
+            </th>
+            <th>
+                Unit Price
+            </th>
+            <th>
+                Unit InStock
+            </th>
+            <th>
+                Image
+            </th>
+            <th>
+                Category
+            </th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+<div class="row">
+    <div class="col-md-4">
+        <form>
+            <div class="form-group" hidden>
+                <label class="control-label">ProductName</label>
+                <input id="frm_ProductId" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">ProductName</label>
+                <input id="frm_ProductName" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">UnitPrice</label>
+                <input id="frm_UnitPrice" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">UnitsInStock</label>
+                <input id="frm_UnitsInStock" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">Image</label>
+                <input id="frm_Image" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">Category</label>
+                <select id="frm_CategoryId" class="form-control"></select>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" onclick="postData()" class="btn btn-primary" />
+                <input type="submit" value="Update" onclick="putData()" class="btn btn-primary" />
+                <input type="submit" value="Delete" onclick="deleteData()" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    var url_product = "http://localhost:5103/api/Products";
+    var url_category = "http://localhost:5103/api/Categories";
+
+    //Load data khi mở site
+    function loadData() {
+        fetch(url_product)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.querySelector("#productTable tbody");
+                tableBody.innerHTML = ""; // Clear existing table rows
+                console.log(data);
+                var i = 1;
+                data.forEach(product => {
+                    var tr = `<tr id="${product.productId}" onClick="getData(${product.productId})">
+                        <td>${i}</td>
+                        <td>${product.productName}</td>
+                        <td>${product.unitPrice}</td>
+                        <td>${product.unitsInStock}</td>
+                        <td>${product.image}</td>
+                        <td>${product.categoryId}</td>
+                        </tr>
+                `;
+                    i++;
+                    tableBody.innerHTML += tr;
+                });
+            })
+            .catch(error => {
+                console.log("Error:", error);
+            });
+    };
+
+    loadData();
+
+    //Load data cho selection list
+    function loadCategory() {
+        $.get(url_category, function (data) {
+            console.log(data);
+            $.each(data, function (index, item) {
+                $('#frm_CategoryId').append($('<option>', {
+                    value: item.categoryId,
+                    text: item.categoryName
+                }));
+            });
+        });
+    };
+
+    loadCategory();
+
+    //load data khi select 1 row
+    function getData(id) {
+        fetch(url_product + "/" + id)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                $("#frm_ProductId").val(data.productId);
+                $("#frm_ProductName").val(data.productName);
+                $("#frm_UnitsInStock").val(data.unitsInStock);
+                $("#frm_Image").val(data.image);
+                $("#frm_UnitPrice").val(data.unitPrice);
+                $("#frm_CategoryId").val(data.categoryId);
+            })
+    };
+
+    //post data
+    function postData() {
+        event.preventDefault();
+
+        var formData = getFormData();
+
+        var config = {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        };
+
+        fetch(url_product, config)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                loadData();
+            })
+    };
+
+    //Put data
+    function putData(){
+        event.preventDefault();
+        console.log("Update Data");
+
+        var formData = getFormData();
+
+        var config = {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        };
+
+        var p_id = document.getElementById('frm_ProductId').value;
+
+        fetch(url_product + "/" + p_id, config)
+        .then(response => {
+            if (!response.ok) { 
+                throw new Error("Network response was faild");
+            }
+            loadData();
+        })
+    };
+
+    //Delete data
+    function deleteData(){
+        event.preventDefault();
+        console.log("Delete Data");
+        var p_id = document.getElementById('frm_ProductId').value;
+
+        $.ajax({
+            url: url_product + "/" + p_id,
+            method: "DELETE",
+            contentType: "application/json",
+            success: response => {
+                loadData();
+            },
+        })
+    }
+
+    //get data from form
+    const getFormData = () => {
+        const formData = {
+            ProductName: document.getElementById('frm_ProductName').value,
+            UnitPrice: document.getElementById('frm_UnitPrice').value,
+            UnitsInStock: document.getElementById('frm_UnitsInStock').value,
+            Image: document.getElementById('frm_Image').value,
+            CategoryId: document.getElementById('frm_CategoryId').value,
+        };
+        return formData;
+    };
+
+    @*
+        function AddProduct() {
+        console.log("Add");
+        var product = {
+        "ProductName": $('#P_name').val(),
+        "UnitsInStock": $('#P_stock').val(),
+        "Image": $('#P_image').val(),
+        "UnitPrice": $('#P_price').val(),
+        "CategoryId": $('#P_category').val()
+        }
+        $.ajax(
+        {
+        url: "Products/CreateProduct",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(product),
+        success: result => {
+        window.location.reload(),
+        console.log("Add success")
+        },
+        error:
+        console.log("Add error")
+        }
+        )
+        } *@
+</script>
